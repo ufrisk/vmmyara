@@ -1,0 +1,7 @@
+LIBRARY        VMMYARA
+EXPORTS
+    VmmYara_RulesLoadCompiled
+    VmmYara_RulesLoadSourceFile
+    VmmYara_RulesLoadSourceString
+    VmmYara_RulesDestroy
+    VmmYara_ScanMemory

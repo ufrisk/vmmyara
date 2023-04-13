@@ -9,14 +9,15 @@ project is to make it easy to use Yara from within the MemProcFS project.
 Building Windows:
 =================
 
-1. Open the YARA solution at: ./yara/windows/vs2017/yara.sln
-2. Upgrade to VS2022 and latest platform toolset when asked on first open.
-3. Build release x64 (or x86).
-4. On a successful build close the YARA solution.
-5. Open the vmmyara solution at: ./vmmyara.sln
-6. Build release x64 (or x86).
-7. On a successful build close the vmmyara solution.
-8. The resulting file vmmyara.dll will be in bin/x64/ (or bin/x86/).
+1. git clone vmmyara: `git clone --recurse-submodules https://github.com/ufrisk/vmmyara`
+2. Open the YARA solution at: ./yara/windows/vs2017/yara.sln
+3. Upgrade to VS2022 and latest platform toolset when asked on first open.
+4. Build release x64 (or x86).
+5. On a successful build close the YARA solution.
+6. Open the vmmyara solution at: ./vmmyara.sln
+7. Build release x64 (or x86).
+8. On a successful build close the vmmyara solution.
+9. The resulting file vmmyara.dll will be in bin/x64/ (or bin/x86/).
 
 Complete the above build flow once for each architecture. It's not possible to
 first build YARA for both 32-bit and 64-bit and then build vmmyara.
@@ -26,13 +27,14 @@ first build YARA for both 32-bit and 64-bit and then build vmmyara.
 Building Linux:
 ===============
 1. Install dependencies. `sudo apt-get install automake libtool make gcc pkg-config flex bison libssl-dev libtool-bin`
-2. cd into the yara directory relative to the vmmyara root - i.e. `cd yara`.
-3. `./bootstrap.sh`
-4. `./configure --with-crypto`
-5. `make`
-6. cd into the vmmyara project directory relative to the vmmyara root, i.e. `cd vmmyara`
-7. `make`
-8. The resulting files libyara.so and vmmyara.so will be in the bin folder.
+2. git clone vmmyara: `git clone --recurse-submodules https://github.com/ufrisk/vmmyara`
+3. cd into the yara directory relative to the vmmyara root - i.e. `cd yara`.
+4. `./bootstrap.sh`
+5. `./configure --with-crypto CFLAGS="-fPIC"`
+6. `make`
+7. cd into the vmmyara project directory relative to the vmmyara root, i.e. `cd vmmyara`
+8. `make`
+9. The resulting file vmmyara.so will be in the bin folder.
 
 
 

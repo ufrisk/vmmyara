@@ -74,6 +74,18 @@ LPSTR CharUtil_PathSplitLastEx(_In_ LPSTR usz, _Out_writes_(cbuPath) LPSTR uszPa
     return uszPath + iSlash + 1;
 }
 
+LPSTR CharUtil_Trim(_In_ LPSTR s, _Out_writes_(cbBuffer) LPSTR szBuffer, _In_ DWORD cbBuffer)
+{
+    LPSTR p;
+    if(!cbBuffer) { return ""; }
+    szBuffer[0] = 0;
+    if(!s || !*s || (cbBuffer <= strlen(s))) { ""; }
+    strncpy_s(szBuffer, cbBuffer, s, _TRUNCATE);
+    for(p = szBuffer + strlen(szBuffer) - 1; (p >= szBuffer) && isspace(*p); --p);
+    p[1] = 0;
+    return szBuffer;
+}
+
 /*
 * Load a compiled yara rule file.
 * -- szCompiledFileRules = the file path of the compiled yara rule file to load.
@@ -87,7 +99,8 @@ VMMYARA_ERROR VmmYara_RulesLoadCompiled(
     _In_ LPSTR szCompiledFileRules,
     _Out_ PVMMYARA_RULES *phVmmYaraRules
 ) {
-    return yr_rules_load(szCompiledFileRules, (YR_RULES**)phVmmYaraRules);
+    CHAR szBuffer[512];
+    return yr_rules_load(CharUtil_Trim(szCompiledFileRules, szBuffer, sizeof(szBuffer)), (YR_RULES**)phVmmYaraRules);
 }
 
 /*
@@ -109,7 +122,7 @@ VMMYARA_ERROR VmmYara_RulesLoadSourceFile(
     int err = VMMYARA_ERROR_SUCCESS;
     FILE *hFile = 0;
     YR_COMPILER *pYrCompiler = NULL;
-    CHAR szYaraRulesPath[512] = { 0 };
+    CHAR szBuffer[512], szYaraRulesPath[512] = { 0 };
     *phVmmYaraRules = NULL;
     // 1: compiler init:
     err = yr_compiler_create(&pYrCompiler);
@@ -117,7 +130,7 @@ VMMYARA_ERROR VmmYara_RulesLoadSourceFile(
     // 2: add all source files to compiler:
     for(i = 0; i < cszSourceFileRules; i++) {
         CharUtil_PathSplitLastEx(pszSourceFileRules[i], szYaraRulesPath, sizeof(szYaraRulesPath));
-        fopen_s(&hFile, pszSourceFileRules[i], "rt");
+        fopen_s(&hFile, CharUtil_Trim(pszSourceFileRules[i], szBuffer, sizeof(szBuffer)), "rt");
         if(err) { goto fail; }
         err = yr_compiler_add_file(pYrCompiler, hFile, NULL, szYaraRulesPath);
         if(err) { goto fail; }

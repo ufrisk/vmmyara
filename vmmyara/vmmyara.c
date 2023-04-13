@@ -9,6 +9,7 @@
 #ifdef LINUX
 #define _Out_writes_(x)
 #define fopen_s(ppFile, szFile, szAttr)     ((*ppFile = fopen64(szFile, szAttr)) ? 0 : 1)
+#define strncpy_s(dst, len, src, srclen)    (strncpy(dst, src, min((long long unsigned int)(max(1, len)) - 1, (long long unsigned int)(srclen))))
 #endif /* LINUX */
 
 int g_Initialized = 0;

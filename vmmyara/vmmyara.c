@@ -8,6 +8,9 @@
 
 #ifdef LINUX
 #define _Out_writes_(x)
+#define min(X,Y)                            ((X) < (Y) ? (X) : (Y))
+#define max(X,Y)                            ((X) > (Y) ? (X) : (Y))
+#define _TRUNCATE                           ((SIZE_T)-1LL)
 #define fopen_s(ppFile, szFile, szAttr)     ((*ppFile = fopen64(szFile, szAttr)) ? 0 : 1)
 #define strncpy_s(dst, len, src, srclen)    (strncpy(dst, src, min((long long unsigned int)(max(1, len)) - 1, (long long unsigned int)(srclen))))
 #endif /* LINUX */

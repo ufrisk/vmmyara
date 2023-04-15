@@ -13,6 +13,7 @@
 #define _TRUNCATE                           ((SIZE_T)-1LL)
 #define fopen_s(ppFile, szFile, szAttr)     ((*ppFile = fopen64(szFile, szAttr)) ? 0 : 1)
 #define strncpy_s(dst, len, src, srclen)    (strncpy(dst, src, min((long long unsigned int)(max(1, len)) - 1, (long long unsigned int)(srclen))))
+#define strncat_s(dst, dstlen, src, srclen) (strncat(dst, src, min((((strlen(dst) + 1 >= (size_t)(dstlen)) || ((size_t)(dstlen) == 0)) ? 0 : ((size_t)(dstlen) - strlen(dst) - 1)), (size_t)(srclen))))
 #endif /* LINUX */
 
 int g_Initialized = 0;
@@ -134,7 +135,8 @@ VMMYARA_ERROR VmmYara_RulesLoadSourceFile(
     // 2: add all source files to compiler:
     for(i = 0; i < cszSourceFileRules; i++) {
         CharUtil_PathSplitLastEx(pszSourceFileRules[i], szYaraRulesPath, sizeof(szYaraRulesPath));
-        fopen_s(&hFile, CharUtil_Trim(pszSourceFileRules[i], szBuffer, sizeof(szBuffer)), "rt");
+        strncat_s(szYaraRulesPath, sizeof(szYaraRulesPath), "/", _TRUNCATE);
+        err = fopen_s(&hFile, CharUtil_Trim(pszSourceFileRules[i], szBuffer, sizeof(szBuffer)), "rt");
         if(err) { goto fail; }
         err = yr_compiler_add_file(pYrCompiler, hFile, NULL, szYaraRulesPath);
         if(err) { goto fail; }

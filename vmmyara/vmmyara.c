@@ -258,8 +258,10 @@ int VmmYara_ScanMemoryCB(YR_SCAN_CONTEXT *context, int message, YR_RULE *rule, P
             RuleMatch.Strings[RuleMatch.cStrings].cbMatchOffset[RuleMatch.Strings[RuleMatch.cStrings].cMatch] = (SIZE_T)match->offset;
             RuleMatch.Strings[RuleMatch.cStrings].cMatch++;
         }
-        RuleMatch.Strings[RuleMatch.cStrings].szString = (LPSTR)string->string;
-        RuleMatch.cStrings++;
+        if(RuleMatch.Strings[RuleMatch.cStrings].cMatch) {
+            RuleMatch.Strings[RuleMatch.cStrings].szString = (LPSTR)string->string;
+            RuleMatch.cStrings++;
+        }
     }
     // callback:
     fResult = pContextCB->pfnCallback(pContextCB->pvContext, &RuleMatch, pContextCB->pbBuffer, pContextCB->cbBuffer);

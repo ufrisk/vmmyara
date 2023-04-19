@@ -14,6 +14,7 @@
 #define fopen_s(ppFile, szFile, szAttr)     ((*ppFile = fopen64(szFile, szAttr)) ? 0 : 1)
 #define strncpy_s(dst, len, src, srclen)    (strncpy(dst, src, min((long long unsigned int)(max(1, len)) - 1, (long long unsigned int)(srclen))))
 #define strncat_s(dst, dstlen, src, srclen) (strncat(dst, src, min((((strlen(dst) + 1 >= (size_t)(dstlen)) || ((size_t)(dstlen) == 0)) ? 0 : ((size_t)(dstlen) - strlen(dst) - 1)), (size_t)(srclen))))
+#define _snprintf_s(s,l,c,...)              (snprintf(s,min((size_t)(l), (size_t)(c)),__VA_ARGS__))
 #endif /* LINUX */
 
 int g_Initialized = 0;
@@ -216,17 +217,19 @@ typedef struct tdVMMYARA_SCANMEMORY_CALLBACK_CONTEXT {
 int VmmYara_ScanMemoryCB(YR_SCAN_CONTEXT *context, int message, YR_RULE *rule, PVMMYARA_SCANMEMORY_CALLBACK_CONTEXT pContextCB)
 {
     BOOL fResult;
+    CHAR szIntegerBuffer[32];
     VMMYARA_RULE_MATCH RuleMatch = { 0 };
     if(message != CALLBACK_MSG_RULE_MATCHING) {
         return CALLBACK_CONTINUE;
     }
     // 1: rule identifier:
+    RuleMatch.dwVersion = VMMYARA_RULE_MATCH_VERSION;
     RuleMatch.szRuleIdentifier = (LPSTR)rule->identifier;
     // 2: tags:
     const char *tag = NULL;
     yr_rule_tags_foreach(rule, tag)
     {
-        if(RuleMatch.cTags >= VMMYARA_RULE_MATCH_MAX) {
+        if(RuleMatch.cTags >= VMMYARA_RULE_MATCH_TAG_MAX) {
             break;
         }
         RuleMatch.szTags[RuleMatch.cTags] = (LPSTR)tag;
@@ -236,23 +239,33 @@ int VmmYara_ScanMemoryCB(YR_SCAN_CONTEXT *context, int message, YR_RULE *rule, P
     YR_META *meta = NULL;
     yr_rule_metas_foreach(rule, meta)
     {
-        if(RuleMatch.cMeta >= VMMYARA_RULE_MATCH_MAX) {
+        if(RuleMatch.cMeta >= VMMYARA_RULE_MATCH_META_MAX) {
             break;
         }
         RuleMatch.Meta[RuleMatch.cMeta].szIdentifier = (LPSTR)meta->identifier;
-        RuleMatch.Meta[RuleMatch.cMeta].szString = (LPSTR)meta->string;
+        if(meta->type == META_TYPE_STRING) {
+            RuleMatch.Meta[RuleMatch.cMeta].szString = (LPSTR)meta->string;
+        } else if(meta->type == META_TYPE_INTEGER) {
+            szIntegerBuffer[0] = 0;
+            _snprintf_s(szIntegerBuffer, sizeof(szIntegerBuffer), _TRUNCATE, "%lli", (long long int)meta->integer);
+            RuleMatch.Meta[RuleMatch.cMeta].szString = szIntegerBuffer;
+        } else if(meta->type == META_TYPE_BOOLEAN) {
+            RuleMatch.Meta[RuleMatch.cMeta].szString = meta->integer ? "true" : "false";
+        } else {
+            continue;
+        }
         RuleMatch.cMeta++;
     }
     // 4: matching strings and offsets:
     YR_STRING *string = NULL;
     yr_rule_strings_foreach(rule, string)
     {
-        if(RuleMatch.cStrings >= VMMYARA_RULE_MATCH_MAX) {
+        if(RuleMatch.cStrings >= VMMYARA_RULE_MATCH_STRING_MAX) {
             break;
         }
         YR_MATCH *match = NULL;
         yr_string_matches_foreach(context, string, match) {
-            if(RuleMatch.Strings[RuleMatch.cStrings].cMatch >= VMMYARA_RULE_MATCH_OFFSETS_MAX) {
+            if(RuleMatch.Strings[RuleMatch.cStrings].cMatch >= VMMYARA_RULE_MATCH_OFFSET_MAX) {
                 break;
             }
             RuleMatch.Strings[RuleMatch.cStrings].cbMatchOffset[RuleMatch.Strings[RuleMatch.cStrings].cMatch] = (SIZE_T)match->offset;

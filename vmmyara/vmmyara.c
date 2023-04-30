@@ -125,7 +125,7 @@ VMMYARA_ERROR VmmYara_RulesLoadSourceFile(
     _Out_ PVMMYARA_RULES *phVmmYaraRules
 ) {
     DWORD i;
-    int err = VMMYARA_ERROR_SUCCESS;
+    int err;
     FILE *hFile = 0;
     YR_COMPILER *pYrCompiler = NULL;
     CHAR szBuffer[512], szYaraRulesPath[512] = { 0 };
@@ -138,7 +138,10 @@ VMMYARA_ERROR VmmYara_RulesLoadSourceFile(
         CharUtil_PathSplitLastEx(pszSourceFileRules[i], szYaraRulesPath, sizeof(szYaraRulesPath));
         strncat_s(szYaraRulesPath, sizeof(szYaraRulesPath), "/", _TRUNCATE);
         err = fopen_s(&hFile, CharUtil_Trim(pszSourceFileRules[i], szBuffer, sizeof(szBuffer)), "rt");
-        if(err) { goto fail; }
+        if(err) {
+            err = VMMYARA_ERROR_COULD_NOT_OPEN_FILE;
+            goto fail;
+        }
         err = yr_compiler_add_file(pYrCompiler, hFile, NULL, szYaraRulesPath);
         if(err) { goto fail; }
         if(hFile) { fclose(hFile); }
@@ -170,7 +173,7 @@ VMMYARA_ERROR VmmYara_RulesLoadSourceString(
     _Out_ PVMMYARA_RULES *phVmmYaraRules
 ) {
     DWORD i;
-    int err = ERROR_SUCCESS;
+    int err;
     YR_COMPILER *pYrCompiler = NULL;
     *phVmmYaraRules = NULL;
     // 1: compiler init:
@@ -187,6 +190,60 @@ VMMYARA_ERROR VmmYara_RulesLoadSourceString(
     // fall-through to cleanup
 fail:
     if(pYrCompiler) { yr_compiler_destroy(pYrCompiler); }
+    return err;
+}
+
+/*
+* Load one or multiple yara rules from either memory or source files.
+* -- cszSourceCombinedRules = the number of source files/strings to load.
+* -- pszSourceCombinedRules = array of source file paths/strings to load.
+* -- phVmmYaraRules = pointer to a PVMMYARA_RULES variable that will receive the
+*                    handle to the loaded rule set on success.
+* -- return = VMMYARA_ERROR_SUCCESS on success, otherwise a yara error.
+*/
+EXPORTED_FUNCTION
+_Success_(return == VMMYARA_ERROR_SUCCESS)
+VMMYARA_ERROR VmmYara_RulesLoadSourceCombined(
+    _In_ DWORD cszSourceCombinedRules,
+    _In_reads_(cszSourceCombinedRules) LPSTR pszSourceCombinedRules[],
+    _Out_ PVMMYARA_RULES *phVmmYaraRules
+) {
+    DWORD i;
+    int err;
+    FILE *hFile = 0;
+    YR_COMPILER *pYrCompiler = NULL;
+    CHAR szBuffer[512], szYaraRulesPath[512] = { 0 };
+    *phVmmYaraRules = NULL;
+    // 1: compiler init:
+    err = yr_compiler_create(&pYrCompiler);
+    if(err) { goto fail; }
+    // 2: add all source files to compiler:
+    for(i = 0; i < cszSourceCombinedRules; i++) {
+        // try add as string:
+        if(strstr(pszSourceCombinedRules[i], "{") && (strstr(pszSourceCombinedRules[i], "rule") || strstr(pszSourceCombinedRules[i], "RULE"))) {
+            err = yr_compiler_add_string(pYrCompiler, pszSourceCombinedRules[i], NULL);
+            if(err == VMMYARA_ERROR_SUCCESS) { continue; }
+        }
+        // try add as file:
+        CharUtil_PathSplitLastEx(pszSourceCombinedRules[i], szYaraRulesPath, sizeof(szYaraRulesPath));
+        strncat_s(szYaraRulesPath, sizeof(szYaraRulesPath), "/", _TRUNCATE);
+        err = fopen_s(&hFile, CharUtil_Trim(pszSourceCombinedRules[i], szBuffer, sizeof(szBuffer)), "rt");
+        if(err) {
+            err = VMMYARA_ERROR_COULD_NOT_OPEN_FILE;
+            goto fail;
+        }
+        err = yr_compiler_add_file(pYrCompiler, hFile, NULL, szYaraRulesPath);
+        if(err) { goto fail; }
+        if(hFile) { fclose(hFile); }
+        hFile = 0;
+    }
+    // 3: retrieve rules:
+    err = yr_compiler_get_rules(pYrCompiler, (YR_RULES**)phVmmYaraRules);
+    if(err) { goto fail; }
+    // fall-through to cleanup
+fail:
+    if(pYrCompiler) { yr_compiler_destroy(pYrCompiler); }
+    if(hFile) { fclose(hFile); }
     return err;
 }
 
@@ -216,8 +273,9 @@ typedef struct tdVMMYARA_SCANMEMORY_CALLBACK_CONTEXT {
 */
 int VmmYara_ScanMemoryCB(YR_SCAN_CONTEXT *context, int message, YR_RULE *rule, PVMMYARA_SCANMEMORY_CALLBACK_CONTEXT pContextCB)
 {
+    DWORD dwo;
     BOOL fResult;
-    CHAR szIntegerBuffer[32];
+    CHAR szIntegerBuffer[32 * VMMYARA_RULE_MATCH_META_MAX];
     VMMYARA_RULE_MATCH RuleMatch = { 0 };
     if(message != CALLBACK_MSG_RULE_MATCHING) {
         return CALLBACK_CONTINUE;
@@ -246,9 +304,10 @@ int VmmYara_ScanMemoryCB(YR_SCAN_CONTEXT *context, int message, YR_RULE *rule, P
         if(meta->type == META_TYPE_STRING) {
             RuleMatch.Meta[RuleMatch.cMeta].szString = (LPSTR)meta->string;
         } else if(meta->type == META_TYPE_INTEGER) {
-            szIntegerBuffer[0] = 0;
-            _snprintf_s(szIntegerBuffer, sizeof(szIntegerBuffer), _TRUNCATE, "%lli", (long long int)meta->integer);
-            RuleMatch.Meta[RuleMatch.cMeta].szString = szIntegerBuffer;
+            dwo = RuleMatch.cMeta * 32;
+            szIntegerBuffer[dwo] = 0;
+            _snprintf_s(szIntegerBuffer + dwo, 32, _TRUNCATE, "%lli", (long long int)meta->integer);
+            RuleMatch.Meta[RuleMatch.cMeta].szString = szIntegerBuffer + dwo;
         } else if(meta->type == META_TYPE_BOOLEAN) {
             RuleMatch.Meta[RuleMatch.cMeta].szString = meta->integer ? "true" : "false";
         } else {

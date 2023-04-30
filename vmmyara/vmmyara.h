@@ -13,7 +13,7 @@
 // (c) Ulf Frisk, 2023
 // Author: Ulf Frisk, pcileech@frizk.net
 //
-// Header Version: 4.3.0.2
+// Header Version: 4.3.1.4
 //
 
 #ifndef __VMMYARA_H__
@@ -143,6 +143,22 @@ VMMYARA_ERROR VmmYara_RulesLoadCompiled(
 );
 
 /*
+* Load one or multiple yara rules from either memory or source files.
+* -- cszSourceCombinedRules = the number of source files/strings to load.
+* -- pszSourceCombinedRules = array of source file paths/strings to load.
+* -- phVmmYaraRules = pointer to a PVMMYARA_RULES variable that will receive the
+*                    handle to the loaded rule set on success.
+* -- return = VMMYARA_ERROR_SUCCESS on success, otherwise a yara error.
+*/
+EXPORTED_FUNCTION
+_Success_(return == VMMYARA_ERROR_SUCCESS)
+VMMYARA_ERROR VmmYara_RulesLoadSourceCombined(
+    _In_ DWORD cszSourceCombinedRules,
+    _In_reads_(cszSourceCombinedRules) LPSTR pszSourceCombinedRules[],
+    _Out_ PVMMYARA_RULES *phVmmYaraRules
+);
+
+/*
 * Load one or multiple yara rules from source files.
 * -- cszSourceFileRules = the number of source files to load.
 * -- pszSourceFileRules = array of source file paths to load.
@@ -180,11 +196,15 @@ VMMYARA_ERROR VmmYara_RulesLoadSourceString(
 _Success_(return == VMMYARA_ERROR_SUCCESS)
 VMMYARA_ERROR VmmYara_RulesDestroy(_In_ PVMMYARA_RULES hVmmYaraRules);
 
+#define VMMYARA_RULE_MATCH_FLAG_MEMPROCFS   1
+#define VMMYARA_RULE_MATCH_FLAG_SUPPRESS    2
+
+
 // =========== START SHARED STRUCTS WITH <vmmdll.h/vmmyara.h> ===========
 #ifndef VMMYARA_RULE_MATCH_DEFINED
 #define VMMYARA_RULE_MATCH_DEFINED
 
-#define VMMYARA_RULE_MATCH_VERSION          0xfedc0001
+#define VMMYARA_RULE_MATCH_VERSION          0xfedc0003
 #define VMMYARA_RULE_MATCH_TAG_MAX          8
 #define VMMYARA_RULE_MATCH_META_MAX         16
 #define VMMYARA_RULE_MATCH_STRING_MAX       8
@@ -195,6 +215,7 @@ VMMYARA_ERROR VmmYara_RulesDestroy(_In_ PVMMYARA_RULES hVmmYaraRules);
 */
 typedef struct tdVMMYARA_RULE_MATCH {
     DWORD dwVersion;                    // VMMYARA_RULE_MATCH_VERSION
+    DWORD flags;
     LPSTR szRuleIdentifier;
     DWORD cTags;
     LPSTR szTags[VMMYARA_RULE_MATCH_TAG_MAX];

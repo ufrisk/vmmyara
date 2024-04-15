@@ -10,7 +10,7 @@ Building Windows:
 =================
 
 1. git clone vmmyara: `git clone --recurse-submodules https://github.com/ufrisk/vmmyara`
-2. Open the YARA solution at: ./yara/windows/vs2017/yara.sln
+2. Open the YARA solution at: ./yara/windows/vs2019/yara.sln
 3. Upgrade to VS2022 and latest platform toolset when asked on first open.
 4. Build release x64 (or x86).
 5. On a successful build close the YARA solution.

@@ -1,6 +1,6 @@
 // vmmyara.h : External headers of the YARA API wrapper for MemProcFS.
 //
-// (c) Ulf Frisk, 2023
+// (c) Ulf Frisk, 2023-2024
 // Author: Ulf Frisk, pcileech@frizk.net
 //
 //

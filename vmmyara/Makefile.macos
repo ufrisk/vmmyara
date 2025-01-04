@@ -1,0 +1,30 @@
+#
+# NOTE! PACKAGE DEPENDENCY ON YARA:
+#
+CC=clang
+CFLAGS  += -I. -I../yara/libyara/include -D LINUX -D _GNU_SOURCE -fPIC -fvisibility=hidden -pthread `pkg-config --cflags openssl`
+CFLAGS  += -fPIC -fstack-protector -D_FORTIFY_SOURCE=2 -O1
+CFLAGS  += -Wall -Wno-unused-result -Wno-unused-variable -Wno-unused-value -Wno-pointer-to-int-cast -Wno-int-to-pointer-cast
+CFLAGS  += -mmacosx-version-min=11.0
+LDFLAGS += -dynamiclib -g -ldl -Wl,-force_load,../yara/.libs/libyara.a `pkg-config --libs openssl`
+LDFLAGS += -Wl,-rpath,@loader_path
+LDFLAGS += -mmacosx-version-min=11.0
+DEPS = vmmyara.h
+OBJ = vmmyara.o
+
+%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
+
+vmmyara: $(OBJ)
+	$(CC) $(CFLAGS) $(LDFLAGS) -o vmmyara.dylib $^
+	mkdir -p ../bin
+	mv vmmyara.dylib ../bin/
+	rm -f *.o || true
+	rm -f */*.o || true
+	rm -f *.so || true
+	true
+
+clean:
+	rm -f *.o || true
+	rm -f */*.o || true
+	rm -f *.so || true

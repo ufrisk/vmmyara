@@ -37,9 +37,17 @@ Building Linux:
 9. The resulting file vmmyara.so will be in the bin folder.
 
 
+Building macOS:
+===============
+1. Install dependencies. `brew install openssl`
+2. Roughly follow linux instructions above.
+3. build using `make -f Makefile.macos` (for dynamic openssl import) or `make -f Makefile.macos2` (for static openssl include).
+4. The resulting file vmmyara.dylib will be in the bin folder. Optionally code sign it.
+
+
 
 Code Signing:
 =============
-The release is not signed. Reason for this is that I don't maintain the yara
-project and I don't sign other peoples code with my code signing certificate.
+The Windows and Linux releases are unsigned. Reason for this is that I don't maintain the project
+and I don't sign other peoples code with my code signing certificate.
 It's really a shame that the YARA project don't provide official DLLs.

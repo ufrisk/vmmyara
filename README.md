@@ -39,10 +39,15 @@ Building Linux:
 
 Building macOS:
 ===============
-1. Install dependencies. `brew install openssl`
-2. Roughly follow linux instructions above.
-3. build using `make -f Makefile.macos` (for dynamic openssl import) or `make -f Makefile.macos2` (for static openssl include).
-4. The resulting file vmmyara.dylib will be in the bin folder. Optionally code sign it.
+1. Install dependencies. `brew install openssl automake libtool pkg-config flex bison`
+2. git clone vmmyara: `git clone --recurse-submodules https://github.com/ufrisk/vmmyara`
+3. cd into the yara directory relative to the vmmyara root - i.e. `cd yara`.
+4. `./bootstrap.sh`
+5. `./configure --with-crypto CFLAGS="-fPIC -mmacosx-version-min=11.0" LDFLAGS="-mmacosx-version-min=11.0"`
+6. `make`
+7. cd into the vmmyara project directory relative to the vmmyara root, i.e. `cd vmmyara`
+8. build using `make -f Makefile.macos` (for dynamic openssl import) or `make -f Makefile.macos2` (for static openssl include).
+9. The resulting file vmmyara.dylib will be in the bin folder. Optionally code sign it.
 
 
 
